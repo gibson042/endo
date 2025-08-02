@@ -1,5 +1,17 @@
 import test from '@endo/ses-ava/prepare-endo.js';
-import { fromUniqueEntries } from '../from-unique-entries.js';
+import { defineFromUniqueEntries } from '../from-unique-entries.js';
+
+const q = JSON.stringify;
+const mockErrorPowers = /** @type {any} */ ({
+    q,
+    Fail: (strings, ...subs) => {
+      const msgParts = strings.map(
+        (s, i) => `${i === 0 ? '' : q(subs[i - 1])}${s}`,
+      );
+      throw Error(msgParts.join(''));
+    },
+  });
+const fromUniqueEntries = defineFromUniqueEntries(mockErrorPowers);
 
 test('test fromUniqueEntries', async t => {
   t.deepEqual(

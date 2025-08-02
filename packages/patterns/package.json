@@ -32,6 +32,7 @@
     "test": "ava"
   },
   "dependencies": {
+    "@endo/base": "workspace:^",
     "@endo/common": "workspace:^",
     "@endo/errors": "workspace:^",
     "@endo/eventual-send": "workspace:^",

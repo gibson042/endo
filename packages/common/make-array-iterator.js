@@ -11,15 +11,12 @@ export const makeArrayIterator = arr => {
   const { length } = arr;
   let i = 0;
   return makeIterator(() => {
-    /** @type {T} */
-    let value;
     if (i < length) {
-      value = arr[i];
+      const value = arr[i];
       i += 1;
       return harden({ done: false, value });
     }
-    // @ts-expect-error The terminal value doesn't matter
-    return harden({ done: true, value });
+    return harden({ done: true, value: /** @type {T} */ (undefined) });
   });
 };
 harden(makeArrayIterator);

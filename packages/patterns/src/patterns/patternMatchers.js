@@ -1,9 +1,9 @@
 // @ts-nocheck So many errors that the suppressions hamper readability.
 // TODO parameterize MatchHelper which will solve most of them
-import { q, b, X, Fail, makeError, annotateError } from '@endo/errors';
+import { defineFromUniqueEntries } from '@endo/base/from-unique-entries.js';
+import { assert, q, b, X, Fail, makeError, annotateError } from '@endo/errors';
 import { identChecker } from '@endo/common/ident-checker.js';
 import { applyLabelingError } from '@endo/common/apply-labeling-error.js';
-import { fromUniqueEntries } from '@endo/common/from-unique-entries.js';
 import { listDifference } from '@endo/common/list-difference.js';
 import {
   assertChecker,
@@ -48,6 +48,7 @@ import { generateCollectionPairEntries } from '../keys/keycollection-operators.j
 
 const { entries, values, hasOwn } = Object;
 const { ownKeys } = Reflect;
+const fromUniqueEntries = defineFromUniqueEntries(assert);
 
 /** @type {WeakSet<Pattern>} */
 const patternMemo = new WeakSet();
@@ -1712,18 +1713,6 @@ const makePatternKit = () => {
     });
   };
 
-  /**
-   * Optional specimen values which are `undefined` pass unconditionally.
-   * We encode this with the `M.or` pattern so it also produces a good
-   * compression distinguishing `undefined` from absence.
-   *
-   * @param {CopyRecord<Pattern>} optionalPatt
-   * @param {string[]} names
-   * @returns {CopyRecord<Pattern>} The partialPatt
-   */
-  const adaptRecordPattern = (optionalPatt, names) =>
-    fromUniqueEntries(names.map(name => [name, MM.opt(optionalPatt[name])]));
-
   /** @type {MatchHelper} */
   const matchSplitRecordHelper = Far('match:splitRecord helper', {
     checkMatches: (
@@ -1738,13 +1727,12 @@ const makePatternKit = () => {
         splitRecordParts(specimen, requiredPatt, optionalPatt);
 
       const partialNames = /** @type {string[]} */ (ownKeys(optionalSpecimen));
-      const partialPatt = adaptRecordPattern(optionalPatt, partialNames);
       return (
         checkMatches(requiredSpecimen, requiredPatt, check) &&
         partialNames.every(name =>
           checkMatches(
             optionalSpecimen[name],
-            partialPatt[name],
+            MM.opt(optionalPatt[name]),
             check,
             `${name}?`,
           ),
