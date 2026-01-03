@@ -48,10 +48,8 @@ const makeEProxyHandler = (recipient, HandledPromise) =>
     get: (_target, propertyKey, receiver) => {
       return harden(
         {
-          // This function purposely checks the `this` value (see above)
-          // In order to be `this` sensitive it is defined using concise method
-          // syntax rather than as an arrow function. To ensure the function
-          // is not constructable, it also avoids the `function` syntax.
+          // We use concise method syntax to be `this`-sensitive but not
+          // [[Construct]]ible.
           /** @type {(...args: any[]) => Promise<unknown>} */
           [propertyKey](...args) {
             if (this !== receiver) {
@@ -109,10 +107,8 @@ const makeESendOnlyProxyHandler = (recipient, HandledPromise) =>
     get: (_target, propertyKey, receiver) => {
       return harden(
         {
-          // This function purposely checks the `this` value (see above)
-          // In order to be `this` sensitive it is defined using concise method
-          // syntax rather than as an arrow function. To ensure the function
-          // is not constructable, it also avoids the `function` syntax.
+          // We use concise method syntax to be `this`-sensitive but not
+          // [[Construct]]ible.
           /** @type {(...args: any[]) => undefined} */
           [propertyKey](...args) {
             // Throw since the function returns nothing

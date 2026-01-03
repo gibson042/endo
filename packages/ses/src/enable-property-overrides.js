@@ -93,8 +93,8 @@ export default function enablePropertyOverrides(
 
       const isDebug = setHas(debugProperties, prop);
 
-      // We use concise method syntax to be `this` sensitive, but still
-      // omit a prototype property or [[Construct]] behavior.
+      // We use concise method syntax to be `this`-sensitive but not
+      // [[Construct]]ible.
       // @ts-expect-error We know there is an accessor descriptor there
       const { get: getter, set: setter } = getOwnPropertyDescriptor(
         {

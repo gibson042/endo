@@ -163,7 +163,8 @@ const defendSyncMethod = (
   const isRawReturn = isRawGuard(returnGuard);
   const matchConfig = buildMatchConfig(methodGuardPayload);
   const { syncMethod } = {
-    // Note purposeful use of `this` and concise method syntax
+    // We use concise method syntax to be `this`-sensitive but not
+    // [[Construct]]ible.
     syncMethod(...syncArgs) {
       try {
         const context = getContext(this);
@@ -232,7 +233,8 @@ const defendAsyncMethod = (
   const matchConfig = buildMatchConfig(rawMethodGuardPayload);
 
   const { asyncMethod } = {
-    // Note purposeful use of `this` and concise method syntax
+    // We use concise method syntax to be `this`-sensitive but not
+    // [[Construct]]ible.
     asyncMethod(...args) {
       const awaitList = [];
       for (const i of awaitIndexes) {
