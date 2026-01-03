@@ -41,15 +41,10 @@ export const tameConsole = (
   unhandledRejectionTrapping = 'report',
   optGetStackString = undefined,
 ) => {
-  let loggedErrorHandler;
-  if (optGetStackString === undefined) {
-    loggedErrorHandler = defaultHandler;
-  } else {
-    loggedErrorHandler = {
-      ...defaultHandler,
-      getStackString: optGetStackString,
-    };
-  }
+  const loggedErrorHandler =
+    optGetStackString === undefined
+      ? defaultHandler
+      : { ...defaultHandler, getStackString: optGetStackString };
 
   // eslint-disable-next-line no-restricted-globals
   const originalConsole = /** @type {VirtualConsole} */ (
@@ -67,15 +62,14 @@ export const tameConsole = (
         : undefined
   );
 
-  // Upgrade a log-only console (as in `eshost -h SpiderMonkey`).
-  if (originalConsole && originalConsole.log) {
-    for (const methodName of ['warn', 'error']) {
-      if (!originalConsole[methodName]) {
-        defineProperty(originalConsole, methodName, {
-          value: wrapLogger(originalConsole.log, originalConsole),
-        });
-      }
-    }
+  // Upgrade a `log`-only console (as in `eshost -h SpiderMonkey`).
+  if (originalConsole && originalConsole.log && !originalConsole.warn) {
+    const warn = wrapLogger(originalConsole.log, originalConsole);
+    defineProperty(originalConsole, 'warn', { value: warn });
+  }
+  if (originalConsole && originalConsole.log && !originalConsole.error) {
+    const error = wrapLogger(originalConsole.log, originalConsole);
+    defineProperty(originalConsole, 'error', { value: error });
   }
 
   const ourConsole = /** @type {VirtualConsole} */ (
@@ -101,11 +95,9 @@ export const tameConsole = (
 
   // Node.js
   const globalProcess = globalThis.process || undefined;
-  if (
-    errorTrapping !== 'none' &&
-    typeof globalProcess === 'object' &&
-    typeof globalProcess.on === 'function'
-  ) {
+  const processIsNodejsEventEmitter =
+    typeof globalProcess === 'object' && typeof globalProcess.on === 'function';
+  if (errorTrapping !== 'none' && processIsNodejsEventEmitter) {
     let terminate;
     if (errorTrapping === 'platform' || errorTrapping === 'exit') {
       const { exit } = globalProcess;
@@ -126,11 +118,7 @@ export const tameConsole = (
       }
     });
   }
-  if (
-    unhandledRejectionTrapping !== 'none' &&
-    typeof globalProcess === 'object' &&
-    typeof globalProcess.on === 'function'
-  ) {
+  if (unhandledRejectionTrapping !== 'none' && processIsNodejsEventEmitter) {
     const handleRejection = reason => {
       // See https://github.com/endojs/endo/blob/master/packages/ses/error-codes/SES_UNHANDLED_REJECTION.md
       ourConsole.error('SES_UNHANDLED_REJECTION:', reason);
@@ -139,7 +127,6 @@ export const tameConsole = (
     // Maybe track unhandled promise rejections.
     const h = makeRejectionHandlers(handleRejection);
     if (h) {
-      // Rejection handlers are supported.
       globalProcess.on('unhandledRejection', h.unhandledRejectionHandler);
       globalProcess.on('rejectionHandled', h.rejectionHandledHandler);
       globalProcess.on('exit', h.processTerminationHandler);
@@ -148,11 +135,10 @@ export const tameConsole = (
 
   // Browser
   const globalWindow = globalThis.window || undefined;
-  if (
-    errorTrapping !== 'none' &&
+  const windowIsDomEventTarget =
     typeof globalWindow === 'object' &&
-    typeof globalWindow.addEventListener === 'function'
-  ) {
+    typeof globalWindow.addEventListener === 'function';
+  if (errorTrapping !== 'none' && windowIsDomEventTarget) {
     globalWindow.addEventListener('error', event => {
       event.preventDefault();
       // See https://github.com/endojs/endo/blob/master/packages/ses/error-codes/SES_UNCAUGHT_EXCEPTION.md
@@ -163,11 +149,7 @@ export const tameConsole = (
       }
     });
   }
-  if (
-    unhandledRejectionTrapping !== 'none' &&
-    typeof globalWindow === 'object' &&
-    typeof globalWindow.addEventListener === 'function'
-  ) {
+  if (unhandledRejectionTrapping !== 'none' && windowIsDomEventTarget) {
     const handleRejection = reason => {
       // See https://github.com/endojs/endo/blob/master/packages/ses/error-codes/SES_UNHANDLED_REJECTION.md
       ourConsole.error('SES_UNHANDLED_REJECTION:', reason);
@@ -175,7 +157,6 @@ export const tameConsole = (
 
     const h = makeRejectionHandlers(handleRejection);
     if (h) {
-      // Rejection handlers are supported.
       globalWindow.addEventListener('unhandledrejection', event => {
         event.preventDefault();
         h.unhandledRejectionHandler(event.reason, event.promise);
