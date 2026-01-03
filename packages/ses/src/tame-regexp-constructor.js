@@ -1,6 +1,7 @@
 import {
   FERAL_REG_EXP,
   TypeError,
+  apply,
   construct,
   defineProperties,
   getOwnPropertyDescriptor,
@@ -13,13 +14,12 @@ export default function tameRegExpConstructor(regExpTaming = 'safe') {
   const makeRegExpConstructor = (_ = {}) => {
     // RegExp has non-writable static properties we need to omit.
     /**
-     * @param  {Parameters<typeof FERAL_REG_EXP>} rest
+     * @param  {Parameters<typeof FERAL_REG_EXP>} args
      */
-    const ResultRegExp = function RegExp(...rest) {
-      if (new.target === undefined) {
-        return FERAL_REG_EXP(...rest);
-      }
-      return construct(FERAL_REG_EXP, rest, new.target);
+    const ResultRegExp = function RegExp(...args) {
+      return new.target === undefined
+        ? apply(FERAL_REG_EXP, this, args)
+        : construct(FERAL_REG_EXP, args, new.target);
     };
 
     defineProperties(ResultRegExp, {

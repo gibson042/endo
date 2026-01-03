@@ -12,13 +12,15 @@ export default function tameDateConstructor() {
   const OriginalDate = Date;
   const DatePrototype = OriginalDate.prototype;
 
-  // Use concise methods to obtain named functions without constructors.
+  // We use an object literal to define named functions.
+  // We use concise method syntax to be `this`-sensitive but not
+  // [[Construct]]ible.
   const tamedMethods = {
     /**
      * `%SharedDate%.now()` throw a `TypeError` starting with "secure mode".
      * See https://github.com/endojs/endo/issues/910#issuecomment-1581855420
      */
-    now() {
+    now: () => {
       throw TypeError('secure mode Calling %SharedDate%.now() throws');
     },
   };
@@ -50,26 +52,25 @@ export default function tameDateConstructor() {
     let ResultDate;
     if (powers === 'original') {
       // eslint-disable-next-line no-shadow
-      ResultDate = function Date(...rest) {
-        if (new.target === undefined) {
-          return apply(OriginalDate, undefined, rest);
-        }
-        return construct(OriginalDate, rest, new.target);
+      ResultDate = function Date(...args) {
+        return new.target === undefined
+          ? apply(OriginalDate, undefined, args)
+          : construct(OriginalDate, args, new.target);
       };
     } else {
       // eslint-disable-next-line no-shadow
-      ResultDate = function Date(...rest) {
+      ResultDate = function Date(...args) {
         if (new.target === undefined) {
           throw TypeError(
             'secure mode Calling %SharedDate% constructor as a function throws',
           );
         }
-        if (rest.length === 0) {
+        if (args.length === 0) {
           throw TypeError(
             'secure mode Calling new %SharedDate%() with no arguments throws',
           );
         }
-        return construct(OriginalDate, rest, new.target);
+        return construct(OriginalDate, args, new.target);
       };
     }
 

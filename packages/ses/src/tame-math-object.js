@@ -13,13 +13,15 @@ export default function tameMathObject() {
   const { random: _, ...otherDescriptors } =
     getOwnPropertyDescriptors(originalMath);
 
-  // Use concise methods to obtain named functions without constructors.
+  // We use an object literal to define named functions.
+  // We use concise method syntax to be `this`-sensitive but not
+  // [[Construct]]ible.
   const tamedMethods = {
     /**
      * `%SharedMath%.random()` throws a TypeError starting with "secure mode".
      * See https://github.com/endojs/endo/issues/910#issuecomment-1581855420
      */
-    random() {
+    random: () => {
       throw TypeError('secure mode %SharedMath%.random() throws');
     },
   };
