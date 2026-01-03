@@ -117,6 +117,23 @@ export const defineProperty = (object, prop, descriptor) => {
   return result;
 };
 
+/**
+ * Explicitly set a function's name, supporting use of arrow functions for which
+ * source text doesn't include a name and no initial name is set by
+ * NamedEvaluation
+ * https://tc39.es/ecma262/multipage/syntax-directed-operations.html#sec-runtime-semantics-namedevaluation
+ *
+ * `name` is the first parameter for better readability at call sites (e.g.,
+ * `return defineName('foo', () => { ... })`).
+ *
+ * @template {Function} F
+ * @param {string} name
+ * @param {F} fn
+ * @returns {F}
+ */
+export const defineName = (name, fn) =>
+  defineProperty(fn, 'name', { value: name });
+
 export const {
   apply,
   construct,

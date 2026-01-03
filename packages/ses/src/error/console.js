@@ -12,7 +12,7 @@ import {
   arrayMap,
   arrayPop,
   arrayPush,
-  defineProperty,
+  defineName,
   freeze,
   fromEntries,
   isError,
@@ -27,20 +27,6 @@ import {
  * @import {FilterConsole, LogSeverity, VirtualConsole} from './types.js'
  * @import {ErrorInfo, ErrorInfoKind, LogRecord, NoteCallback, LoggedErrorHandler, MakeCausalConsole, MakeLoggingConsoleKit} from "./internal-types.js";
  */
-
-/**
- * Explicitly set a function's name, supporting use of arrow functions for which
- * source text doesn't include a name and no initial name is set by
- * NamedEvaluation
- * https://tc39.es/ecma262/multipage/syntax-directed-operations.html#sec-runtime-semantics-namedevaluation
- * Instead, we hope that tooling uses only the explicit `name` property.
- *
- * @template {Function} F
- * @param {string} name
- * @param {F} fn
- * @returns {F}
- */
-const defineName = (name, fn) => defineProperty(fn, 'name', { value: name });
 
 // For our internal debugging purposes, uncomment
 // const internalDebugConsole = console;
@@ -281,17 +267,13 @@ export const makeCausalConsole = (baseConsole, loggedErrorHandler) => {
       logError(severity, subErrors[0]);
       return;
     }
-    let label;
-    if (subErrors.length === 1) {
-      label = `Nested error`;
-    } else {
-      label = `Nested ${subErrors.length} errors`;
-    }
-    if (optTag !== undefined) {
-      label = `${label} under ${optTag}`;
-    }
+    const label =
+      subErrors.length === 1
+        ? `Nested error`
+        : `Nested ${subErrors.length} errors`;
+    const scopeSuffix = optTag === undefined ? '' : ` under ${optTag}`;
     // eslint-disable-next-line @endo/no-polymorphic-call
-    baseConsole.group(label);
+    baseConsole.group(`${label}${scopeSuffix}`);
     try {
       for (const subError of subErrors) {
         // eslint-disable-next-line no-use-before-define
@@ -424,7 +406,7 @@ freeze(makeCausalConsole);
  * the problem is that console-like loggers, including the one in ava,
  * join the string arguments of the log message with a space.
  * Because of this, there's an extra space at the beginning of each of
- * the split lines. So this kludge compensated by putting an extra empty
+ * the split lines. So this kludge compensates by putting an extra empty
  * string at the beginning, so that the logger will add the same extra
  * joiner.
  * TODO: Fix this horrible kludge, and indent in a sane manner.
