@@ -1,5 +1,6 @@
 import {
   FERAL_ERROR,
+  TypeError,
   apply,
   construct,
   defineName,
@@ -7,6 +8,7 @@ import {
   defineProperty,
   getOwnPropertyDescriptor,
   getOwnPropertyDescriptors,
+  isPrimitive,
   setPrototypeOf,
 } from '../commons.js';
 import { NativeErrors } from '../permits.js';
@@ -18,12 +20,19 @@ import { tameV8ErrorConstructor } from './tame-v8-error-constructor.js';
 const feralStackDesc = getOwnPropertyDescriptor(FERAL_ERROR.prototype, 'stack');
 const feralStackGetter = feralStackDesc && feralStackDesc.get;
 
+const requireObject = obj => {
+  if (isPrimitive(obj)) throw TypeError('receiver must be an object');
+};
+
 let initialGetStackString = defineName(
   'getStackString',
   typeof feralStackGetter === 'function'
     ? error => apply(feralStackGetter, error, [])
     : // The fallback is to just use the de facto `error.stack` if present
-      error => ('stack' in error ? `${error.stack}` : ''),
+      error => {
+        requireObject(error);
+        return 'stack' in error ? `${error.stack}` : '';
+      },
 );
 
 export default function tameErrorConstructor(
@@ -217,6 +226,9 @@ export default function tameErrorConstructor(
     const { stack: stackDesc } = getOwnPropertyDescriptors({
       get stack() {
         if (isUnsafe) return initialGetStackString(this);
+        requireObject(this);
+        // XXX Once `isError` is free of false negatives, we should return
+        // undefined when `isError(this)` is false.
         // https://github.com/tc39/proposal-error-stacks/issues/46
         // allows this to not add an unpleasant newline. Otherwise
         // we should fix this.
