@@ -7,6 +7,7 @@ import {
   arrayMap,
   arraySlice,
   create,
+  defineName,
   defineProperties,
   fromEntries,
   reflectSet,
@@ -263,14 +264,16 @@ export const tameV8ErrorConstructor = (
   /** @type {WeakMap<Error, ParsedStackInfo | StructuredStackInfo>} */
   const stackInfos = new WeakMap();
 
-  // Use concise methods to obtain named functions without constructors.
+  // We use an object literal to define named functions.
+  // We use concise method syntax to be `this`-sensitive but not
+  // [[Construct]]ible.
   const tamedMethods = {
     // The optional `optFn` argument is for cutting off the bottom of
     // the stack --- for capturing the stack only above the topmost
     // call to that function. Since this isn't the "real" captureStackTrace
     // but instead calls the real one, if no other cutoff is provided,
     // we cut this one off.
-    captureStackTrace(error, optFn = tamedMethods.captureStackTrace) {
+    captureStackTrace: (error, optFn = tamedMethods.captureStackTrace) => {
       if (typeof originalCaptureStackTrace === 'function') {
         // OriginalError.captureStackTrace is only on v8
         apply(originalCaptureStackTrace, OriginalError, [error, optFn]);
@@ -278,11 +281,12 @@ export const tameV8ErrorConstructor = (
       }
       reflectSet(error, 'stack', '');
     },
+
     // Shim of proposed special power, to reside by default only
     // in the start compartment, for getting the stack traceback
     // string associated with an error.
     // See https://tc39.es/proposal-error-stacks/
-    getStackString(error) {
+    getStackString: error => {
       let stackInfo = weakmapGet(stackInfos, error);
 
       if (stackInfo === undefined) {
@@ -309,7 +313,8 @@ export const tameV8ErrorConstructor = (
 
       return stackString;
     },
-    prepareStackTrace(error, sst) {
+
+    prepareStackTrace: (error, sst) => {
       if (errorTaming === 'unsafe') {
         const stackString = stackStringFromSST(error, sst);
         weakmapSet(stackInfos, error, { stackString });
@@ -349,15 +354,12 @@ export const tameV8ErrorConstructor = (
     if (weaksetHas(systemPrepareFnSet, inputPrepareFn)) {
       return inputPrepareFn;
     }
-    // Use concise methods to obtain named functions without constructors.
-    const systemMethods = {
-      prepareStackTrace(error, sst) {
-        weakmapSet(stackInfos, error, { callSites: sst });
-        return inputPrepareFn(error, safeV8SST(sst));
-      },
-    };
-    weaksetAdd(systemPrepareFnSet, systemMethods.prepareStackTrace);
-    return systemMethods.prepareStackTrace;
+    const wrapped = defineName('prepareStackTrace', (error, sst) => {
+      weakmapSet(stackInfos, error, { callSites: sst });
+      return inputPrepareFn(error, safeV8SST(sst));
+    });
+    weaksetAdd(systemPrepareFnSet, wrapped);
+    return wrapped;
   };
 
   // Note `stackTraceLimit` accessor already defined by
