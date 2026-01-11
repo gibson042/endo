@@ -330,17 +330,16 @@ export const isPrimitive = val =>
   !val || (typeof val !== 'object' && typeof val !== 'function');
 
 /**
- * isError tests whether an object inherits from the intrinsic
- * `Error.prototype`.
- * We capture the original error constructor as FERAL_ERROR to provide a clear
- * signal for reviewers that we are handling an object with excess authority,
- * like stack trace inspection, that we are carefully hiding from client code.
- * Checking instanceof happens to be safe, but to avoid uttering FERAL_ERROR
- * for such a trivial case outside commons.js, we provide a utility function.
+ * isError is the built-in `Error.isError` when present (i.e., since ECMAScript
+ * 2025), but otherwise falls back on a check for prototypal inheritance from
+ * FERAL_ERROR that is safe but flawed (e.g., it incorrectly returns false for a
+ * cross-realm error instance). Note that FERAL_ERROR is never directly exposed.
  *
- * @param {any} value
+ * @param {unknown} value
+ * @returns {value is Error}
  */
-export const isError = value => value instanceof FERAL_ERROR;
+export const isError =
+  Error.isError || defineName('isError', value => value instanceof FERAL_ERROR);
 
 /**
  * @template T
