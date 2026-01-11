@@ -107,7 +107,7 @@ export const throwRedacted = Fail;
  * these options only work on v8.)
  *
  * Given that `func` is not yet frozen, then `hideAndHardenFunction(func)`
- * will prifix `func.name` with an additional `'__HIDE_'`, so that under
+ * will prefix `func.name` with an additional `'__HIDE_'`, so that under
  * those stack filtering options, frames for calls to such functions are
  * not reported.
  *
